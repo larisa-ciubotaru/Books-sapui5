@@ -1,0 +1,94 @@
+_schema-version: "3.2"
+ID: ns-projectf2
+description: A Fiori application.
+version: 0.0.5
+modules:
+- name: ns-projectf2-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: ns-projectf2-destination-service
+    parameters:
+      content-target: true
+  - name: ns-projectf2-repo-host
+    parameters:
+      service-key:
+        name: ns-projectf2-repo-host-key
+  - name: ns-projectf2-uaa
+    parameters:
+      service-key:
+        name: ns-projectf2-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: ns-projectf2_html_repo_host
+          ServiceInstanceName: ns-projectf2-html5-srv
+          ServiceKeyName: ns-projectf2-repo-host-key
+          sap.cloud.service: ns-projectf2
+        - Authentication: OAuth2UserTokenExchange
+          Name: ns-projectf2_uaa
+          ServiceInstanceName: ns-projectf2-xsuaa-srv
+          ServiceKeyName: ns-projectf2-uaa-key
+          sap.cloud.service: ns-projectf2
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: ns-projectf2-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: ns-projectf2-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - nsprojectf2.zip
+      name: nsprojectf2
+      target-path: resources/
+- name: nsprojectf2
+  type: html5
+  path: .
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: ns-projectf2-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: ns-projectf2-destination-service
+    service-plan: lite
+- name: ns-projectf2-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: ns-projectf2-xsuaa-srv
+    service-plan: application
+- name: ns-projectf2-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: ns-projectf2-html5-srv
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
